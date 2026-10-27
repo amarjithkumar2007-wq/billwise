@@ -118,3 +118,84 @@ test('overlapping periods and over-long periods are rejected by the database', {
     c.query(`insert into public.bills (label,period_start,period_end,kwh,amount) values ('long','2030-01-01','2031-06-01',1,1)`)), /check constraint/);
   // U1 (A) and U2 (x2) both have 2026-01-01..2026-01-30 from setup: same dates for different users are allowed.
 });
+
+// ---- goals and check-ins ----
+const goalFor = async (user, appId, hours) =>
+  (await c.query('insert into public.goals (user_id, appliance_id, target_hours) values ($1,$2,$3) returning id', [user, appId, hours])).rows[0].id;
+
+test('goals: user can create a goal for own appliance, and check in once per day', { skip }, async () => {
+  await as(U1, 'authenticated', async () => {
+    const a = (await c.query(`insert into public.appliances (name,watts,hours_per_day) values ('AC',1500,8) returning id`)).rows[0].id;
+    const g = (await c.query('insert into public.goals (appliance_id, target_hours) values ($1,6) returning id', [a])).rows[0].id;
+    await c.query(`insert into public.goal_checkins (goal_id, day) values ($1, current_date)`, [g]);
+    await c.query('savepoint s');
+    await assert.rejects(c.query(`insert into public.goal_checkins (goal_id, day) values ($1, current_date)`, [g]), /duplicate key|unique/);
+    await c.query('rollback to savepoint s');
+    await assert.rejects(c.query(`insert into public.goal_checkins (goal_id, day) values ($1, current_date + 5)`, [g]), /check constraint/);
+  });
+});
+
+test('goals: cannot point a goal at another user appliance', { skip }, async () => {
+  const other = (await c.query('select id from public.appliances where user_id=$1 limit 1', [U2])).rows[0].id;
+  await assert.rejects(as(U1, 'authenticated', () =>
+    c.query('insert into public.goals (appliance_id, target_hours) values ($1,1)', [other])), /foreign key|row-level security/);
+  // even writing user_id = U2 is blocked by RLS
+  await assert.rejects(as(U1, 'authenticated', () =>
+    c.query('insert into public.goals (user_id, appliance_id, target_hours) values ($1,$2,1)', [U2, other])), /row-level security/);
+});
+
+test('goals: users cannot read or touch each other goals and check-ins', { skip }, async () => {
+  const appU2 = (await c.query('select id from public.appliances where user_id=$1 limit 1', [U2])).rows[0].id;
+  const g2 = await goalFor(U2, appU2, 2);
+  await c.query('insert into public.goal_checkins (user_id, goal_id, day) values ($1,$2,current_date)', [U2, g2]);
+  try {
+    const rows = await as(U1, 'authenticated', async () => ({
+      goals: (await c.query('select * from public.goals')).rows,
+      checkins: (await c.query('select * from public.goal_checkins')).rows,
+      del: (await c.query('delete from public.goals where id=$1', [g2])).rowCount,
+      upd: (await c.query('update public.goals set target_hours=0 where id=$1', [g2])).rowCount,
+    }));
+    assert.equal(rows.goals.length, 0);
+    assert.equal(rows.checkins.length, 0);
+    assert.equal(rows.del, 0);
+    assert.equal(rows.upd, 0);
+    await assert.rejects(as(U1, 'authenticated', () =>
+      c.query('insert into public.goal_checkins (goal_id, day) values ($1,current_date - 1)', [g2])), /foreign key|row-level security/);
+  } finally {
+    await c.query('delete from public.goals where id=$1', [g2]);
+  }
+});
+
+test('goals: target hours must be 0-24, one goal per appliance, check-ins are not editable', { skip }, async () => {
+  await as(U1, 'authenticated', async () => {
+    const a = (await c.query(`insert into public.appliances (name,watts,hours_per_day) values ('Fan',60,10) returning id`)).rows[0].id;
+    await c.query('savepoint s1');
+    await assert.rejects(c.query('insert into public.goals (appliance_id, target_hours) values ($1,25)', [a]), /check constraint/);
+    await c.query('rollback to savepoint s1');
+    const g = (await c.query('insert into public.goals (appliance_id, target_hours) values ($1,5) returning id', [a])).rows[0].id;
+    await c.query('savepoint s2');
+    await assert.rejects(c.query('insert into public.goals (appliance_id, target_hours) values ($1,4)', [a]), /duplicate key|unique/);
+    await c.query('rollback to savepoint s2');
+    const ci = (await c.query('insert into public.goal_checkins (goal_id, day) values ($1,current_date) returning id', [g])).rows[0].id;
+    const upd = await c.query('update public.goal_checkins set day=current_date-1 where id=$1', [ci]);
+    assert.equal(upd.rowCount, 0); // no update policy
+  });
+});
+
+test('goals: deleting an appliance removes its goal and check-ins', { skip }, async () => {
+  await as(U1, 'authenticated', async () => {
+    const a = (await c.query(`insert into public.appliances (name,watts,hours_per_day) values ('TV',100,5) returning id`)).rows[0].id;
+    const g = (await c.query('insert into public.goals (appliance_id, target_hours) values ($1,3) returning id', [a])).rows[0].id;
+    await c.query('insert into public.goal_checkins (goal_id, day) values ($1,current_date)', [g]);
+    await c.query('delete from public.appliances where id=$1', [a]);
+    assert.equal((await c.query('select 1 from public.goals where id=$1', [g])).rowCount, 0);
+    assert.equal((await c.query('select 1 from public.goal_checkins where goal_id=$1', [g])).rowCount, 0);
+  });
+});
+
+test('goals: anon has no access and authenticated cannot TRUNCATE', { skip }, async () => {
+  await assert.rejects(as(null, 'anon', () => c.query('select * from public.goals')), /permission denied/);
+  await assert.rejects(as(null, 'anon', () => c.query('select * from public.goal_checkins')), /permission denied/);
+  await assert.rejects(as(U1, 'authenticated', () => c.query('truncate public.goals')), /permission denied/);
+  await assert.rejects(as(U1, 'authenticated', () => c.query('truncate public.goal_checkins')), /permission denied/);
+});

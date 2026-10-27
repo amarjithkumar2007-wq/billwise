@@ -5,6 +5,7 @@ import { Login } from './pages/Login';
 import { Bills } from './pages/Bills';
 import { Appliances } from './pages/Appliances';
 import { Compare } from './pages/Compare';
+import { Progress } from './pages/Progress';
 
 export function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -35,6 +36,7 @@ export function App() {
       <Bills onChange={bump} />
       <Appliances onChange={bump} />
       <Compare version={version} />
+      <Progress version={version} />
     </main>
   );
 }

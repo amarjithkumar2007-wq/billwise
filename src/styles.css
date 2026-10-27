@@ -10,3 +10,5 @@ button { padding: 10px 14px; font-size: 1rem; border: 0; border-radius: 8px; bac
 button.link { background: none; color: #1f7a45; padding: 0; margin: 0; text-decoration: underline; }
 .err { color: #a12020; } .ok { color: #1f7a45; } .muted { color: #5b7a67; font-size: .85rem; }
 .row { display: flex; gap: 8px; } .row > * { flex: 1; }
+.bar { height: 8px; background: #2f7d4f; border-radius: 4px; margin: 2px 0 8px; }
+button:disabled { background: #9aa5a0; cursor: default; }

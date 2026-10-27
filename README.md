@@ -9,6 +9,9 @@ You enter two bills (units in kWh, total amount, billing dates). BillWise:
 2. Splits the amount change exactly into **usage effect** (you used more or fewer units) and **rate effect** (each unit cost more or less).
 3. Lets you add appliances (watts x hours/day) and run a what-if ("AC 8h to 6h") priced at **your own** price per unit.
 
+4. **Progress** (Mission LiFE): shows kWh/day across all your saved bills, oldest first, with the first bill as your baseline.
+5. **Goals**: set "run this appliance at most N hours/day". Tap "I kept it today" once a day. **Points are self-reported** (one per check-in day), not measured by a meter. The estimated saving is rated watts x hours saved x 30 days, priced at your latest average price per unit.
+
 No tariff table is built in and no savings are promised: every number comes from the bills you enter.
 
 ## Architecture
@@ -53,7 +56,7 @@ npm test
 npm run dev
 ```
 
-Apply `supabase/migrations/0001_init.sql` to your Supabase project, and `0002_explain_change.sql`. Run DB tests with `DATABASE_URL=... npm run test:db`.
+Apply `supabase/migrations/0001_init.sql` to your Supabase project, `0002_explain_change.sql`, then `0003` to `0005` (`0005_goals.sql` adds goals and check-ins with row level security). Run DB tests with `DATABASE_URL=... npm run test:db`.
 
 ## AI assistance
 
