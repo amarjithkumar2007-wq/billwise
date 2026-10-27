@@ -58,3 +58,10 @@ Apply `supabase/migrations/0001_init.sql` to your Supabase project, and `0002_ex
 ## AI assistance
 
 AI assistants were used while writing this code, as the rules allow. The core logic is small and explained inline in `src/core/analysis.ts`.
+
+## Assumptions and validation
+- Price per kWh = total bill / units. It is an effective average (fixed charges, taxes and slabs included), not the tariff.
+- The units-vs-price split is arithmetic, not a causal claim. What-if savings are estimates at the average rate; real appliance duty cycles vary.
+- Amounts have no fixed currency; use the currency of your bill.
+- Rules (enforced in the app and again in the DB, migration 0004): end date not before start, billing periods of one user may not overlap (btree_gist exclusion constraint), max 365 days per period, positive kWh and amounts, hours per day 0-24, finite numbers only.
+- Sample rows in the live demo are labelled DEMO and are not real bills.
