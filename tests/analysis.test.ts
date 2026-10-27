@@ -56,3 +56,17 @@ describe('appliances and scenarios', () => {
     expect(scenario({ name: 'Fan', watts: 75, hoursPerDay: 5 }, 10, 6).savedAmountPerMonth).toBeLessThan(0);
   });
 });
+
+describe('same cases as tests/db (SQL and TS must agree)', () => {
+  it('usage-driven: 300->360 kWh at the same rate', () => {
+    const r = explainChange(bill(300, 1500, '2026-01-01', '2026-01-30'), bill(360, 1800, '2026-02-01', '2026-03-02'));
+    expect(r.mainDriver).toBe('usage');
+    expect(r.usageEffect + r.rateEffect).toBeCloseTo(r.amountDelta, 6);
+  });
+  it('rate-driven: same units, higher amount', () => {
+    const r = explainChange(bill(300, 1500, '2026-01-01', '2026-01-30'), bill(300, 1800, '2026-04-01', '2026-04-30'));
+    expect(r.mainDriver).toBe('rate');
+    expect(r.rateEffect).toBeCloseTo(300, 6);
+    expect(r.usageEffect).toBeCloseTo(0, 6);
+  });
+});

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { ApplianceRow, BillRow, listAppliances, listBills } from '../lib/data';
 import type { BillChange, Scenario } from '../core/types';
+import { scenario } from '../core/analysis';
 
 interface Result { change: BillChange; scenarios: Scenario[] }
 
@@ -19,9 +20,14 @@ export function Compare() {
 
   async function run() {
     setErr(''); setRes(null);
-    const scenarios = appId && hours !== '' ? [{ applianceId: appId, newHoursPerDay: Number(hours) }] : [];
-    const { data, error } = await supabase.functions.invoke('analyze', { body: { billAId: a, billBId: b, scenarios } });
-    if (error) setErr(error.message); else setRes(data as Result);
+    const { data, error } = await supabase.rpc('explain_change', { bill_a: a, bill_b: b });
+    if (error) { setErr(error.message); return; }
+    const change = data as BillChange;
+    const app = apps.find((x) => x.id === appId);
+    const scenarios: Scenario[] = app && hours !== ''
+      ? [scenario({ name: app.name, watts: app.watts, hoursPerDay: app.hours_per_day }, Number(hours), change.ratePerKwhB)]
+      : [];
+    setRes({ change, scenarios });
   }
 
   const c = res?.change;
