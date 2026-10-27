@@ -45,8 +45,8 @@ export function Solar({ version }: { version: number }) {
       <form className="card" onSubmit={estimate}>
         <p className="muted">A rough estimate of what a rooftop system could generate where you live. Not a quote and not a guarantee.</p>
         <div className="row">
-          <label>Latitude<input type="number" step="0.01" min="-90" max="90" required value={f.lat} onChange={(e) => setF({ ...f, lat: e.target.value })} /></label>
-          <label>Longitude<input type="number" step="0.01" min="-180" max="180" required value={f.lon} onChange={(e) => setF({ ...f, lon: e.target.value })} /></label>
+          <label>Latitude<input type="number" step="any" min="-90" max="90" required value={f.lat} onChange={(e) => setF({ ...f, lat: e.target.value })} /></label>
+          <label>Longitude<input type="number" step="any" min="-180" max="180" required value={f.lon} onChange={(e) => setF({ ...f, lon: e.target.value })} /></label>
         </div>
         <label>System size in kW (a typical home system is a few kW)<input type="number" step="0.1" min="0.1" max="100" required value={f.kw} onChange={(e) => setF({ ...f, kw: e.target.value })} /></label>
         <button type="button" onClick={locate}>Use my location</button>{' '}
