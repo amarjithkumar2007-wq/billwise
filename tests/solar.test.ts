@@ -62,17 +62,17 @@ describe('fetchSolar', () => {
 
 describe('solarVsUse', () => {
   const s = { kwhPerYear: 3650, kwhPerDay: 10, slopeDeg: null, azimuthDeg: null, radiationDb: null };
-  it('caps the offset at what the user actually uses (no illusory saving)', () => {
+  it('caps the upper bound at the user average use', () => {
     const big = solarVsUse(s, 4, 6);
     expect(big.generationPctOfUse).toBeCloseTo(250);
-    expect(big.offsetKwhPerMonth).toBeCloseTo(120); // 4 kWh/day x 30, not 10 x 30
-    expect(big.offsetAmountPerMonth).toBeCloseTo(720);
+    expect(big.maxOffsetKwhPerMonth).toBeCloseTo(120); // 4 kWh/day x 30, not 10 x 30
+    expect(big.maxOffsetAmountPerMonth).toBeCloseTo(720);
     const small = solarVsUse(s, 20, 5);
-    expect(small.offsetKwhPerMonth).toBeCloseTo(300);
+    expect(small.maxOffsetKwhPerMonth).toBeCloseTo(300);
     expect(small.generationPctOfUse).toBeCloseTo(50);
   });
   it('has no money without a bill and rejects zero use', () => {
-    expect(solarVsUse(s, 10, null).offsetAmountPerMonth).toBeNull();
+    expect(solarVsUse(s, 10, null).maxOffsetAmountPerMonth).toBeNull();
     expect(() => solarVsUse(s, 0, 5)).toThrow(ValidationError);
   });
 });

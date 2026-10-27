@@ -63,10 +63,10 @@ export function Solar({ version }: { version: number }) {
           </p>
           {cmp ? (
             <p>
-              Your latest bill averages {useKwhPerDay!.toFixed(1)} kWh/day, so this system would generate about {cmp.generationPctOfUse.toFixed(0)}% of that on a yearly average.
-              The part that could offset your own use is about {cmp.offsetKwhPerMonth.toFixed(0)} kWh/month
-              {cmp.offsetAmountPerMonth === null ? '' : `, worth about ${cmp.offsetAmountPerMonth.toFixed(0)} at your latest average price per unit`}.
-              This ignores system cost, subsidies, net-metering rules and your real tariff.
+              Your latest bill averages {useKwhPerDay!.toFixed(1)} kWh/day. On a yearly average this system could generate about {cmp.generationPctOfUse.toFixed(0)}% of that.
+              <strong> Upper bound:</strong> at most about {cmp.maxOffsetKwhPerMonth.toFixed(0)} kWh/month of your own use
+              {cmp.maxOffsetAmountPerMonth === null ? '' : `, which is at most about ${cmp.maxOffsetAmountPerMonth.toFixed(0)} at your latest average price per unit`}.
+              The real figure is lower if you use power at different times than the panels generate it, and it depends on how your utility credits power you send back. This is not a saving, a quote or a guarantee, and it ignores system cost, subsidies and your real tariff.
             </p>
           ) : <p className="muted">Add a bill to compare this with your own use.</p>}
         </div>

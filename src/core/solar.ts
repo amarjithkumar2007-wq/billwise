@@ -69,10 +69,14 @@ export async function fetchSolar(i: SolarInput, fetchImpl: typeof fetch = fetch,
 export interface SolarVsUse {
   /** Average generation as a percent of the user's average daily use. Can be above 100. */
   generationPctOfUse: number;
-  /** Energy per month that could offset the user's own use: the smaller of generation and use. */
-  offsetKwhPerMonth: number;
-  /** That energy priced at the user's own average price per unit, or null with no bill. Not a quote. */
-  offsetAmountPerMonth: number | null;
+  /**
+   * Upper bound, not a forecast: the smaller of average generation and average use, per month.
+   * Real offset is lower when use and generation happen at different times of day, and depends on
+   * how the utility credits exported power (not modelled here).
+   */
+  maxOffsetKwhPerMonth: number;
+  /** That upper bound priced at the user's own average price per unit, or null with no bill. A ceiling, not a saving or a quote. */
+  maxOffsetAmountPerMonth: number | null;
 }
 
 export function solarVsUse(s: SolarSummary, useKwhPerDay: number, ratePerKwh: number | null): SolarVsUse {
@@ -80,7 +84,7 @@ export function solarVsUse(s: SolarSummary, useKwhPerDay: number, ratePerKwh: nu
   const offset = Math.min(s.kwhPerDay, useKwhPerDay) * 30;
   return {
     generationPctOfUse: (s.kwhPerDay / useKwhPerDay) * 100,
-    offsetKwhPerMonth: offset,
-    offsetAmountPerMonth: ratePerKwh === null ? null : offset * ratePerKwh,
+    maxOffsetKwhPerMonth: offset,
+    maxOffsetAmountPerMonth: ratePerKwh === null ? null : offset * ratePerKwh,
   };
 }
