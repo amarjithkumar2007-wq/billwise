@@ -1,5 +1,7 @@
+declare const process: { env: Record<string, string> };
+process.env.TZ = 'Asia/Kolkata'; // set before any Date is used so localDay() is tested in IST
 import { describe, expect, it } from 'vitest';
-import { goalEstimate, latestRate, points, trend } from '../src/core/progress';
+import { goalEstimate, latestRate, localDay, points, trend } from '../src/core/progress';
 import { ValidationError } from '../src/core/analysis';
 
 const bill = (label: string, s: string, e: string, kwh: number, amount = kwh * 5) => ({ label, periodStart: s, periodEnd: e, kwh, amount });
@@ -33,9 +35,20 @@ describe('trend', () => {
 });
 
 describe('points', () => {
-  it('counts distinct check-in days', () => {
+  it('is one point per goal per day', () => {
     expect(points([])).toBe(0);
-    expect(points(['2026-01-01', '2026-01-02', '2026-01-02'])).toBe(2);
+    expect(points([{ goalId: 'g1', day: '2026-01-01' }, { goalId: 'g1', day: '2026-01-02' }, { goalId: 'g1', day: '2026-01-02' }])).toBe(2);
+    expect(points([{ goalId: 'g1', day: '2026-01-01' }, { goalId: 'g2', day: '2026-01-01' }])).toBe(2);
+  });
+});
+
+describe('localDay', () => {
+  it('uses the device calendar day, not the UTC day', () => {
+    // 19:00 UTC on 27 Oct = 00:30 IST on 28 Oct
+    const d = new Date('2026-10-27T19:00:00Z');
+    expect(d.toISOString().slice(0, 10)).toBe('2026-10-27');
+    expect(localDay(d)).toBe('2026-10-28');
+    expect(localDay(new Date('2026-10-27T18:29:00Z'))).toBe('2026-10-27'); // 23:59 IST
   });
 });
 
@@ -49,8 +62,9 @@ describe('goalEstimate', () => {
   it('has no money figure without a bill', () => {
     expect(goalEstimate(ac, 7, null).amountPerMonth).toBeNull();
   });
-  it('rejects goals above current use or outside 0-24', () => {
+  it('rejects goals at or above current use (no illusory saving) or outside 0-24', () => {
     expect(() => goalEstimate(ac, 9, 5)).toThrow(ValidationError);
+    expect(() => goalEstimate(ac, 8, 5)).toThrow(ValidationError);
     expect(() => goalEstimate(ac, -1, 5)).toThrow(ValidationError);
   });
 });

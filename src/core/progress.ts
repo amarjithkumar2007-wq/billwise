@@ -32,9 +32,21 @@ export function trend(bills: Bill[]): TrendPoint[] {
   }));
 }
 
-/** Self-reported points: one point per check-in day. */
-export function points(checkinDays: string[]): number {
-  return new Set(checkinDays).size;
+/**
+ * Self-reported points: one point per goal per day. The database allows one check-in per goal per day,
+ * so this is the number of check-ins; the set below only guards against duplicates in the input.
+ */
+export function points(checkins: { goalId: string; day: string }[]): number {
+  return new Set(checkins.map((c) => `${c.goalId}|${c.day}`)).size;
+}
+
+/**
+ * The user's own calendar date (YYYY-MM-DD) from their device clock, not the UTC date.
+ * Example: 00:30 on 28 Oct in India is still 27 Oct in UTC, and must count as 28 Oct.
+ */
+export function localDay(d: Date = new Date()): string {
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
 export interface GoalEstimate {
@@ -49,7 +61,7 @@ export function goalEstimate(
   targetHours: number,
   ratePerKwh: number | null,
 ): GoalEstimate {
-  if (targetHours > appliance.hoursPerDay) throw new ValidationError('Goal must not be more hours than the appliance runs now');
+  if (!(targetHours < appliance.hoursPerDay)) throw new ValidationError('Goal must be fewer hours per day than the appliance runs now');
   const s = scenario(appliance, targetHours, ratePerKwh ?? 0);
   return { kwhPerMonth: s.savedKwhPerMonth, amountPerMonth: ratePerKwh === null ? null : s.savedAmountPerMonth };
 }

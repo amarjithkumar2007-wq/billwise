@@ -138,10 +138,10 @@ test('goals: user can create a goal for own appliance, and check in once per day
 test('goals: cannot point a goal at another user appliance', { skip }, async () => {
   const other = (await c.query('select id from public.appliances where user_id=$1 limit 1', [U2])).rows[0].id;
   await assert.rejects(as(U1, 'authenticated', () =>
-    c.query('insert into public.goals (appliance_id, target_hours) values ($1,1)', [other])), /foreign key|row-level security/);
+    c.query('insert into public.goals (appliance_id, target_hours) values ($1,1)', [other])), /Appliance not found|foreign key|row-level security/);
   // even writing user_id = U2 is blocked by RLS
   await assert.rejects(as(U1, 'authenticated', () =>
-    c.query('insert into public.goals (user_id, appliance_id, target_hours) values ($1,$2,1)', [U2, other])), /row-level security/);
+    c.query('insert into public.goals (user_id, appliance_id, target_hours) values ($1,$2,1)', [U2, other])), /row-level security|Appliance not found/);
 });
 
 test('goals: users cannot read or touch each other goals and check-ins', { skip }, async () => {
@@ -170,7 +170,7 @@ test('goals: target hours must be 0-24, one goal per appliance, check-ins are no
   await as(U1, 'authenticated', async () => {
     const a = (await c.query(`insert into public.appliances (name,watts,hours_per_day) values ('Fan',60,10) returning id`)).rows[0].id;
     await c.query('savepoint s1');
-    await assert.rejects(c.query('insert into public.goals (appliance_id, target_hours) values ($1,25)', [a]), /check constraint/);
+    await assert.rejects(c.query('insert into public.goals (appliance_id, target_hours) values ($1,25)', [a]), /check constraint|fewer hours/);
     await c.query('rollback to savepoint s1');
     const g = (await c.query('insert into public.goals (appliance_id, target_hours) values ($1,5) returning id', [a])).rows[0].id;
     await c.query('savepoint s2');
@@ -198,4 +198,30 @@ test('goals: anon has no access and authenticated cannot TRUNCATE', { skip }, as
   await assert.rejects(as(null, 'anon', () => c.query('select * from public.goal_checkins')), /permission denied/);
   await assert.rejects(as(U1, 'authenticated', () => c.query('truncate public.goals')), /permission denied/);
   await assert.rejects(as(U1, 'authenticated', () => c.query('truncate public.goal_checkins')), /permission denied/);
+});
+
+test('goals: goal hours must be below the appliance current hours (trigger)', { skip }, async () => {
+  await as(U1, 'authenticated', async () => {
+    const a = (await c.query(`insert into public.appliances (name,watts,hours_per_day) values ('Heater',2000,4) returning id`)).rows[0].id;
+    await c.query('savepoint s');
+    await assert.rejects(c.query('insert into public.goals (appliance_id, target_hours) values ($1,4)', [a]), /fewer hours/);
+    await c.query('rollback to savepoint s');
+    await assert.rejects(c.query('insert into public.goals (appliance_id, target_hours) values ($1,6)', [a]), /fewer hours/);
+    await c.query('rollback to savepoint s');
+    const g = (await c.query('insert into public.goals (appliance_id, target_hours) values ($1,3.9) returning id', [a])).rows[0].id;
+    await assert.rejects(c.query('update public.goals set target_hours=4 where id=$1', [g]), /fewer hours/);
+  });
+});
+
+test('check-in day: user-local date is accepted up to one day ahead of UTC, two days ahead is rejected', { skip }, async () => {
+  // current_date is the UTC date on the database. A user in UTC+14 can already be on the next calendar day.
+  await as(U1, 'authenticated', async () => {
+    const a = (await c.query(`insert into public.appliances (name,watts,hours_per_day) values ('Lamp',10,10) returning id`)).rows[0].id;
+    const g = (await c.query('insert into public.goals (appliance_id, target_hours) values ($1,5) returning id', [a])).rows[0].id;
+    await c.query('insert into public.goal_checkins (goal_id, day) values ($1, current_date + 1)', [g]);
+    await c.query('savepoint s');
+    await assert.rejects(c.query('insert into public.goal_checkins (goal_id, day) values ($1, current_date + 2)', [g]), /check constraint/);
+    await c.query('rollback to savepoint s');
+    await c.query('insert into public.goal_checkins (goal_id, day) values ($1, current_date - 1)', [g]); // yesterday (west of UTC) is fine
+  });
 });
