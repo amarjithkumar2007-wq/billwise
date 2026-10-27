@@ -6,7 +6,7 @@ import { scenario } from '../core/analysis';
 
 interface Result { change: BillChange; scenarios: Scenario[] }
 
-export function Compare() {
+export function Compare({ version }: { version: number }) {
   const [bills, setBills] = useState<BillRow[]>([]);
   const [apps, setApps] = useState<ApplianceRow[]>([]);
   const [a, setA] = useState('');
@@ -16,7 +16,7 @@ export function Compare() {
   const [res, setRes] = useState<Result | null>(null);
   const [err, setErr] = useState('');
 
-  useEffect(() => { listBills().then(setBills).catch(() => {}); listAppliances().then(setApps).catch(() => {}); }, []);
+  useEffect(() => { listBills().then(setBills).catch(() => {}); listAppliances().then(setApps).catch(() => {}); }, [version]);
 
   async function run() {
     setErr(''); setRes(null);

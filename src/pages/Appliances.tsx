@@ -3,12 +3,12 @@ import { supabase } from '../lib/supabase';
 import { ApplianceRow, listAppliances } from '../lib/data';
 import { applianceKwhPerDay } from '../core/analysis';
 
-export function Appliances() {
+export function Appliances({ onChange }: { onChange: () => void }) {
   const [items, setItems] = useState<ApplianceRow[]>([]);
   const [err, setErr] = useState('');
   const [f, setF] = useState({ name: '', watts: '', hours: '' });
 
-  const load = () => listAppliances().then(setItems).catch((e) => setErr(e.message));
+  const load = () => listAppliances().then((a) => { setItems(a); onChange(); }).catch((e) => setErr(e.message));
   useEffect(() => { load(); }, []);
 
   async function add(e: FormEvent) {

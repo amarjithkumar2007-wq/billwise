@@ -3,12 +3,12 @@ import { supabase } from '../lib/supabase';
 import { BillRow, listBills } from '../lib/data';
 import { billingDays, ValidationError, validateBill } from '../core/analysis';
 
-export function Bills() {
+export function Bills({ onChange }: { onChange: () => void }) {
   const [bills, setBills] = useState<BillRow[]>([]);
   const [err, setErr] = useState('');
   const [f, setF] = useState({ label: '', start: '', end: '', kwh: '', amount: '' });
 
-  const load = () => listBills().then(setBills).catch((e) => setErr(e.message));
+  const load = () => listBills().then((b) => { setBills(b); onChange(); }).catch((e) => setErr(e.message));
   useEffect(() => { load(); }, []);
 
   async function add(e: FormEvent) {
