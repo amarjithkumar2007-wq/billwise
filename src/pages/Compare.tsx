@@ -49,12 +49,13 @@ export function Compare({ version }: { version: number }) {
       {c && (
         <div className="card">
           <p>Daily use: {c.kwhPerDayA.toFixed(2)} to {c.kwhPerDayB.toFixed(2)} kWh/day ({c.kwhPerDayPct === null ? 'n/a' : `${c.kwhPerDayPct.toFixed(1)}%`}).</p>
-          <p>Price per unit: {c.ratePerKwhA.toFixed(2)} to {c.ratePerKwhB.toFixed(2)}.</p>
-          <p>Amount change: {c.amountDelta.toFixed(2)} = usage {c.usageEffect.toFixed(2)} + rate {c.rateEffect.toFixed(2)}.</p>
-          <p><strong>{c.mainDriver === 'none' ? 'No real change.' : c.mainDriver === 'usage' ? 'Main reason: you used different units.' : 'Main reason: each unit cost different.'}</strong></p>
+          <p>Average price per kWh (total amount / units): {c.ratePerKwhA.toFixed(2)} to {c.ratePerKwhB.toFixed(2)}.</p>
+          <p>Amount change: {c.amountDelta.toFixed(2)} = units effect {c.usageEffect.toFixed(2)} + price effect {c.rateEffect.toFixed(2)}.</p>
+          <p><strong>{c.mainDriver === 'none' ? 'No meaningful change.' : c.mainDriver === 'usage' ? 'Biggest part of the change: different units used.' : 'Biggest part of the change: a higher or lower average price per unit.'}</strong></p>
           {res!.scenarios.map((s) => (
-            <p key={s.appliance} className="ok">{s.appliance}: {s.currentKwhPerDay.toFixed(2)} to {s.newKwhPerDay.toFixed(2)} kWh/day = {s.savedKwhPerMonth.toFixed(1)} kWh and {s.savedAmountPerMonth.toFixed(2)} per 30 days at your latest bill's price per unit.</p>
+            <p key={s.appliance} className="ok">Estimate for {s.appliance}: {s.currentKwhPerDay.toFixed(2)} to {s.newKwhPerDay.toFixed(2)} kWh/day, about {s.savedKwhPerMonth.toFixed(1)} kWh and {s.savedAmountPerMonth.toFixed(2)} per 30 days at the later bill's average price. Real savings can differ.</p>
           ))}
+          <p className="muted">This is arithmetic on your two bills, not proof of cause.</p>
         </div>
       )}
     </section>

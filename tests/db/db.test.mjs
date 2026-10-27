@@ -110,3 +110,11 @@ test('explain_change rejects same bill twice and unknown ids', { skip }, async (
 test('authenticated cannot TRUNCATE (RLS does not cover it)', { skip }, async () => {
   await assert.rejects(as(U1, 'authenticated', () => c.query('truncate public.bills')), /permission denied/);
 });
+
+test('overlapping periods and over-long periods are rejected by the database', { skip }, async () => {
+  await assert.rejects(as(U1, 'authenticated', () =>
+    c.query(`insert into public.bills (label,period_start,period_end,kwh,amount) values ('ov','2026-01-30','2026-02-05',1,1)`)), /overlap|exclusion/);
+  await assert.rejects(as(U1, 'authenticated', () =>
+    c.query(`insert into public.bills (label,period_start,period_end,kwh,amount) values ('long','2030-01-01','2031-06-01',1,1)`)), /check constraint/);
+  // U1 (A) and U2 (x2) both have 2026-01-01..2026-01-30 from setup: same dates for different users are allowed.
+});

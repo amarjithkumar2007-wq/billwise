@@ -36,8 +36,8 @@ export function Appliances({ onChange }: { onChange: () => void }) {
       <form className="card" onSubmit={add}>
         <label>Appliance<input required value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></label>
         <div className="row">
-          <label>Watts (see label)<input type="number" min="0" step="0.1" required value={f.watts} onChange={(e) => setF({ ...f, watts: e.target.value })} /></label>
-          <label>Hours per day<input type="number" min="0" max="24" step="0.1" required value={f.hours} onChange={(e) => setF({ ...f, hours: e.target.value })} /></label>
+          <label>Rated watts (on the label)<input type="number" min="0" step="0.1" required value={f.watts} onChange={(e) => setF({ ...f, watts: e.target.value })} /></label>
+          <label>Hours per day (0-24, average)<input type="number" min="0" max="24" step="0.1" required value={f.hours} onChange={(e) => setF({ ...f, hours: e.target.value })} /></label>
         </div>
         <button type="submit">Add appliance</button>
         {err && <p className="err">{err}</p>}

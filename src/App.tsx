@@ -26,6 +26,12 @@ export function App() {
     <main>
       <h1>BillWise</h1>
       <p className="muted">{session.user.email} - <button className="link" onClick={() => supabase.auth.signOut()}>Log out</button></p>
+      <div className="card muted">
+        <strong>How the numbers work.</strong> Price per kWh here is your bill's total amount divided by its units. That is an
+        average: it includes fixed charges, taxes and slab pricing, so it is not your tariff. The change split (units vs price)
+        is arithmetic, not a cause. What-if savings are estimates at that average price; real savings depend on your tariff
+        and on how often an appliance really draws its rated watts. Amounts are in whatever currency your bill uses.
+      </div>
       <Bills onChange={bump} />
       <Appliances onChange={bump} />
       <Compare version={version} />

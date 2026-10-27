@@ -70,3 +70,23 @@ describe('same cases as tests/db (SQL and TS must agree)', () => {
     expect(r.usageEffect).toBeCloseTo(0, 6);
   });
 });
+
+import { periodsOverlap, MAX_PERIOD_DAYS } from '../src/core/analysis';
+describe('period rules', () => {
+  it('detects overlap, including a shared single day', () => {
+    expect(periodsOverlap('2026-01-01', '2026-01-31', '2026-01-31', '2026-02-28')).toBe(true);
+    expect(periodsOverlap('2026-01-01', '2026-01-30', '2026-01-31', '2026-02-28')).toBe(false);
+  });
+  it('allows a one-day period and rejects a too-long one', () => {
+    expect(kwhPerDay(bill(5, 30, '2026-01-01', '2026-01-01'))).toBe(5);
+    expect(() => kwhPerDay(bill(5, 30, '2026-01-01', '2027-06-01'))).toThrow(ValidationError);
+    expect(MAX_PERIOD_DAYS).toBe(366);
+  });
+  it('rejects NaN and Infinity', () => {
+    expect(() => kwhPerDay(bill(NaN, 30))).toThrow(ValidationError);
+    expect(() => applianceKwhPerDay({ name: 'x', watts: Infinity, hoursPerDay: 1 })).toThrow(ValidationError);
+  });
+  it('counts days across a leap day and a month end inclusively', () => {
+    expect(billingDays('2028-02-28', '2028-03-01')).toBe(3);
+  });
+});

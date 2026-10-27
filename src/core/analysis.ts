@@ -2,6 +2,8 @@ import type { Appliance, Bill, BillChange, Scenario } from './types';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+export const MAX_PERIOD_DAYS = 366;
+
 export class ValidationError extends Error {}
 
 /** Inclusive number of days between two ISO dates (YYYY-MM-DD). */
@@ -14,9 +16,10 @@ export function billingDays(start: string, end: string): number {
 }
 
 export function validateBill(b: Bill): void {
+  if (!Number.isFinite(b.kwh) || !Number.isFinite(b.amount)) throw new ValidationError('Units and amount must be numbers');
   if (!(b.kwh > 0)) throw new ValidationError('Units (kWh) must be greater than 0');
   if (!(b.amount >= 0)) throw new ValidationError('Amount cannot be negative');
-  billingDays(b.periodStart, b.periodEnd);
+  if (billingDays(b.periodStart, b.periodEnd) > MAX_PERIOD_DAYS) throw new ValidationError(`Billing period is longer than ${MAX_PERIOD_DAYS} days`);
 }
 
 export function kwhPerDay(b: Bill): number {
@@ -69,7 +72,7 @@ export function explainChange(a: Bill, b: Bill): BillChange {
 }
 
 export function applianceKwhPerDay(a: Appliance): number {
-  if (!(a.watts >= 0) || !(a.hoursPerDay >= 0) || a.hoursPerDay > 24) {
+  if (!Number.isFinite(a.watts) || !Number.isFinite(a.hoursPerDay) || !(a.watts >= 0) || !(a.hoursPerDay >= 0) || a.hoursPerDay > 24) {
     throw new ValidationError('Watts must be >= 0 and hours per day between 0 and 24');
   }
   return (a.watts * a.hoursPerDay) / 1000;
@@ -92,4 +95,11 @@ export function scenario(a: Appliance, newHoursPerDay: number, ratePerKwh: numbe
     savedKwhPerMonth,
     savedAmountPerMonth: savedKwhPerMonth * ratePerKwh,
   };
+}
+
+/** True when two inclusive date ranges share at least one day. */
+export function periodsOverlap(aStart: string, aEnd: string, bStart: string, bEnd: string): boolean {
+  billingDays(aStart, aEnd);
+  billingDays(bStart, bEnd);
+  return aStart <= bEnd && bStart <= aEnd;
 }
