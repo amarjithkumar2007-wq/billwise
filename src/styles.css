@@ -1,0 +1,12 @@
+:root { font-family: system-ui, sans-serif; color: #12301f; background: #f4faf6; }
+body { margin: 0; }
+main { max-width: 520px; margin: 0 auto; padding: 16px; }
+h1 { font-size: 1.5rem; margin: 0 0 4px; }
+h2 { font-size: 1.1rem; margin: 24px 0 8px; }
+.card { background: #fff; border: 1px solid #cfe6d8; border-radius: 12px; padding: 12px; margin: 8px 0; }
+label { display: block; font-size: .85rem; margin: 8px 0 2px; }
+input, select { width: 100%; box-sizing: border-box; padding: 10px; font-size: 1rem; border: 1px solid #9cc5ac; border-radius: 8px; }
+button { padding: 10px 14px; font-size: 1rem; border: 0; border-radius: 8px; background: #1f7a45; color: #fff; margin-top: 10px; }
+button.link { background: none; color: #1f7a45; padding: 0; margin: 0; text-decoration: underline; }
+.err { color: #a12020; } .ok { color: #1f7a45; } .muted { color: #5b7a67; font-size: .85rem; }
+.row { display: flex; gap: 8px; } .row > * { flex: 1; }
