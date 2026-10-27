@@ -106,3 +106,7 @@ test('explain_change rejects same bill twice and unknown ids', { skip }, async (
   await assert.rejects(as(U1, 'authenticated', () => c.query('select public.explain_change($1,$1)', [ids.a1])), /different bills/);
   await assert.rejects(as(U1, 'authenticated', () => c.query('select public.explain_change($1,$2)', [ids.a1, '00000000-0000-4000-8000-000000000999'])), /Bill not found/);
 });
+
+test('authenticated cannot TRUNCATE (RLS does not cover it)', { skip }, async () => {
+  await assert.rejects(as(U1, 'authenticated', () => c.query('truncate public.bills')), /permission denied/);
+});
