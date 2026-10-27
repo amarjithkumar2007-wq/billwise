@@ -6,6 +6,7 @@ import { Bills } from './pages/Bills';
 import { Appliances } from './pages/Appliances';
 import { Compare } from './pages/Compare';
 import { Progress } from './pages/Progress';
+import { Solar } from './pages/Solar';
 
 export function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -37,6 +38,7 @@ export function App() {
       <Appliances onChange={bump} />
       <Compare version={version} />
       <Progress version={version} />
+      <Solar version={version} />
     </main>
   );
 }
