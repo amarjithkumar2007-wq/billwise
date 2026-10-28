@@ -1,14 +1,14 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { BillRow, listBills } from '../lib/data';
-import { billingDays, ValidationError, validateBill } from '../core/analysis';
+import { billingDays, periodsOverlap, ValidationError, validateBill } from '../core/analysis';
 
-export function Bills() {
+export function Bills({ onChange }: { onChange: () => void }) {
   const [bills, setBills] = useState<BillRow[]>([]);
   const [err, setErr] = useState('');
   const [f, setF] = useState({ label: '', start: '', end: '', kwh: '', amount: '' });
 
-  const load = () => listBills().then(setBills).catch((e) => setErr(e.message));
+  const load = () => listBills().then((b) => { setBills(b); onChange(); }).catch((e) => setErr(e.message));
   useEffect(() => { load(); }, []);
 
   async function add(e: FormEvent) {
@@ -18,6 +18,10 @@ export function Bills() {
       validateBill({ label: f.label, periodStart: f.start, periodEnd: f.end, kwh: Number(f.kwh), amount: Number(f.amount) });
     } catch (x) {
       setErr(x instanceof ValidationError ? x.message : 'Invalid input');
+      return;
+    }
+    if (bills.some((o) => periodsOverlap(o.period_start, o.period_end, f.start, f.end))) {
+      setErr('This period overlaps a bill you already added');
       return;
     }
     const { error } = await supabase.from('bills').insert({
@@ -38,7 +42,7 @@ export function Bills() {
       {bills.map((b) => (
         <div className="card" key={b.id}>
           <strong>{b.label}</strong> <span className="muted">{b.period_start} to {b.period_end} ({billingDays(b.period_start, b.period_end)} days)</span>
-          <div>{b.kwh} kWh, amount {b.amount} <button className="link" onClick={() => remove(b.id)}>delete</button></div>
+          <div>{b.kwh} kWh, total {b.amount} <button className="link" onClick={() => remove(b.id)}>delete</button></div>
         </div>
       ))}
       <form className="card" onSubmit={add}>
@@ -49,7 +53,7 @@ export function Bills() {
         </div>
         <div className="row">
           <label>Units (kWh)<input type="number" step="0.01" required value={f.kwh} onChange={(e) => setF({ ...f, kwh: e.target.value })} /></label>
-          <label>Total amount<input type="number" step="0.01" required value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} /></label>
+          <label>Total amount payable (bill currency)<input type="number" step="0.01" required value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} /></label>
         </div>
         <button type="submit">Add bill</button>
         {err && <p className="err">{err}</p>}

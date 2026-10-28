@@ -56,3 +56,37 @@ describe('appliances and scenarios', () => {
     expect(scenario({ name: 'Fan', watts: 75, hoursPerDay: 5 }, 10, 6).savedAmountPerMonth).toBeLessThan(0);
   });
 });
+
+describe('same cases as tests/db (SQL and TS must agree)', () => {
+  it('usage-driven: 300->360 kWh at the same rate', () => {
+    const r = explainChange(bill(300, 1500, '2026-01-01', '2026-01-30'), bill(360, 1800, '2026-02-01', '2026-03-02'));
+    expect(r.mainDriver).toBe('usage');
+    expect(r.usageEffect + r.rateEffect).toBeCloseTo(r.amountDelta, 6);
+  });
+  it('rate-driven: same units, higher amount', () => {
+    const r = explainChange(bill(300, 1500, '2026-01-01', '2026-01-30'), bill(300, 1800, '2026-04-01', '2026-04-30'));
+    expect(r.mainDriver).toBe('rate');
+    expect(r.rateEffect).toBeCloseTo(300, 6);
+    expect(r.usageEffect).toBeCloseTo(0, 6);
+  });
+});
+
+import { periodsOverlap, MAX_PERIOD_DAYS } from '../src/core/analysis';
+describe('period rules', () => {
+  it('detects overlap, including a shared single day', () => {
+    expect(periodsOverlap('2026-01-01', '2026-01-31', '2026-01-31', '2026-02-28')).toBe(true);
+    expect(periodsOverlap('2026-01-01', '2026-01-30', '2026-01-31', '2026-02-28')).toBe(false);
+  });
+  it('allows a one-day period and rejects a too-long one', () => {
+    expect(kwhPerDay(bill(5, 30, '2026-01-01', '2026-01-01'))).toBe(5);
+    expect(() => kwhPerDay(bill(5, 30, '2026-01-01', '2027-06-01'))).toThrow(ValidationError);
+    expect(MAX_PERIOD_DAYS).toBe(366);
+  });
+  it('rejects NaN and Infinity', () => {
+    expect(() => kwhPerDay(bill(NaN, 30))).toThrow(ValidationError);
+    expect(() => applianceKwhPerDay({ name: 'x', watts: Infinity, hoursPerDay: 1 })).toThrow(ValidationError);
+  });
+  it('counts days across a leap day and a month end inclusively', () => {
+    expect(billingDays('2028-02-28', '2028-03-01')).toBe(3);
+  });
+});

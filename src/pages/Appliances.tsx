@@ -3,12 +3,12 @@ import { supabase } from '../lib/supabase';
 import { ApplianceRow, listAppliances } from '../lib/data';
 import { applianceKwhPerDay } from '../core/analysis';
 
-export function Appliances() {
+export function Appliances({ onChange }: { onChange: () => void }) {
   const [items, setItems] = useState<ApplianceRow[]>([]);
   const [err, setErr] = useState('');
   const [f, setF] = useState({ name: '', watts: '', hours: '' });
 
-  const load = () => listAppliances().then(setItems).catch((e) => setErr(e.message));
+  const load = () => listAppliances().then((a) => { setItems(a); onChange(); }).catch((e) => setErr(e.message));
   useEffect(() => { load(); }, []);
 
   async function add(e: FormEvent) {
@@ -36,8 +36,8 @@ export function Appliances() {
       <form className="card" onSubmit={add}>
         <label>Appliance<input required value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></label>
         <div className="row">
-          <label>Watts (see label)<input type="number" min="0" step="0.1" required value={f.watts} onChange={(e) => setF({ ...f, watts: e.target.value })} /></label>
-          <label>Hours per day<input type="number" min="0" max="24" step="0.1" required value={f.hours} onChange={(e) => setF({ ...f, hours: e.target.value })} /></label>
+          <label>Rated watts (on the label)<input type="number" min="0" step="0.1" required value={f.watts} onChange={(e) => setF({ ...f, watts: e.target.value })} /></label>
+          <label>Hours per day (0-24, average)<input type="number" min="0" max="24" step="0.1" required value={f.hours} onChange={(e) => setF({ ...f, hours: e.target.value })} /></label>
         </div>
         <button type="submit">Add appliance</button>
         {err && <p className="err">{err}</p>}
