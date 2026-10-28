@@ -14,3 +14,18 @@ export async function listAppliances(): Promise<ApplianceRow[]> {
   if (error) throw new Error(error.message);
   return (data ?? []).map((r) => ({ ...r, watts: Number(r.watts), hours_per_day: Number(r.hours_per_day) }));
 }
+
+export interface GoalRow { id: string; appliance_id: string; target_hours: number }
+export interface CheckinRow { id: string; goal_id: string; day: string }
+
+export async function listGoals(): Promise<GoalRow[]> {
+  const { data, error } = await supabase.from('goals').select('id, appliance_id, target_hours');
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r) => ({ ...r, target_hours: Number(r.target_hours) }));
+}
+
+export async function listCheckins(): Promise<CheckinRow[]> {
+  const { data, error } = await supabase.from('goal_checkins').select('id, goal_id, day');
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
